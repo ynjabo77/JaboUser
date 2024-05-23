@@ -1,13 +1,13 @@
-package com.JaboUser;
+package com.ynjabo77.jabouser;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class JaboUserApplicationTests {
+class JabouserApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+    @Test
+    void contextLoads() {
+    }
 
 }
