@@ -1,18 +1,18 @@
 package com.ynjabo77.jabouser.model.domain;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+
 import java.io.Serializable;
 import java.util.Date;
+
 import lombok.Data;
 
 /**
  * 用户表
+ *
  * @TableName user
  */
-@TableName(value ="user")
+@TableName(value = "user")
 @Data
 public class User implements Serializable {
     /**
@@ -42,6 +42,11 @@ public class User implements Serializable {
     private String userAvatar;
 
     /**
+     * 用户权限
+     */
+    private Integer userRole;
+
+    /**
      * 性别
      */
     private Integer sex;
@@ -69,6 +74,7 @@ public class User implements Serializable {
     /**
      * 是否删除(0-未删, 1-已删)
      */
+    @TableLogic
     private Integer isDelete;
 
     @TableField(exist = false)
