@@ -2,6 +2,8 @@ package com.ynjabo77.jabouser.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ynjabo77.jabouser.common.ErrorCode;
+import com.ynjabo77.jabouser.exception.BusinessException;
 import com.ynjabo77.jabouser.model.domain.User;
 import com.ynjabo77.jabouser.service.UserService;
 import com.ynjabo77.jabouser.mapper.UserMapper;
@@ -39,32 +41,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
         // 1. 校验字段非空
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
         // 账号不能少于 4 位
         if (userAccount.length() < 4) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号过短");
         }
         // 密码不能少于 8 位
         if (userPassword.length() < 8) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码过短");
         }
         // 账户只能有大小写字母和数字
         String validPattern = "^[A-Za-z0-9]+$";
         Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
         if (!matcher.find()) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "存在特殊字符");
         }
         // 密码和校验密码相同
         if (!userPassword.equals(checkPassword)) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码输入不一致");
         }
         // 账户不能重复
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("userAccount", userAccount);
         long count = userMapper.selectCount(queryWrapper);
         if (count > 0) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
         }
         // 2. 密码加密
         String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
@@ -74,7 +76,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         user.setUserPassword(encryptPassword);
         boolean saveResult = this.save(user);
         if (!saveResult) {
-            return -1;
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "注册失败");
         }
         return user.getId();
     }
@@ -83,21 +85,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public User userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验字段非空
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
         // 账号不能少于 4 位
         if (userAccount.length() < 4) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号过短");
         }
         // 密码不能少于 8 位
         if (userPassword.length() < 8) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码过短");
         }
         // 账户只能有大小写字母和数字
         String validPattern = "^[A-Za-z0-9]+$";
         Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
         if (!matcher.find()) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "存在特殊字符");
         }
         // 2. 密码加密
         String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
@@ -108,7 +110,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         User user = userMapper.selectOne(queryWrapper);
         if (user == null) {
             log.info("user login failed,userAccount cannot match userPassword");
-            return null;
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
         }
         // 3. 用户脱敏
         User safetyUser = getSafetyUser(user);
@@ -125,6 +127,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      */
     @Override
     public User getSafetyUser(User originUser) {
+        if (originUser == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        }
         User safetyUser = new User();
         safetyUser.setId(originUser.getId());
         safetyUser.setUsername(originUser.getUsername());
@@ -136,6 +141,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safetyUser.setUserStatus(originUser.getUserStatus());
         safetyUser.setCreateTime(originUser.getCreateTime());
         return safetyUser;
+    }
+
+    /**
+     * 用户退出
+     *
+     * @param request
+     */
+    @Override
+    public boolean userLogout(HttpServletRequest request) {
+        // 移除登录态
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        return true;
     }
 }
 
